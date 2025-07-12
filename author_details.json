@@ -1,0 +1,202 @@
+{
+    "Albert Einstein": {
+        "Born On": "March 14, 1879",
+        "Location": "Ulm, Germany"
+    },
+    "J.K. Rowling": {
+        "Born On": "July 31, 1965",
+        "Location": "Yate, South Gloucestershire, England, The United Kingdom"
+    },
+    "Jane Austen": {
+        "Born On": "December 16, 1775",
+        "Location": "Steventon Rectory, Hampshire, The United Kingdom"
+    },
+    "Marilyn Monroe": {
+        "Born On": "June 01, 1926",
+        "Location": "The United States"
+    },
+    "André Gide": {
+        "Born On": "November 22, 1869",
+        "Location": "Paris, France"
+    },
+    "Thomas A. Edison": {
+        "Born On": "February 11, 1847",
+        "Location": "Milan, Ohio, The United States"
+    },
+    "Eleanor Roosevelt": {
+        "Born On": "October 11, 1884",
+        "Location": "The United States"
+    },
+    "Steve Martin": {
+        "Born On": "August 14, 1945",
+        "Location": "Waco, Texas, The United States"
+    },
+    "Bob Marley": {
+        "Born On": "February 06, 1945",
+        "Location": "Nine Mile, Saint Ann, Jamaica"
+    },
+    "Dr. Seuss": {
+        "Born On": "March 02, 1904",
+        "Location": "Springfield, MA, The United States"
+    },
+    "Douglas Adams": {
+        "Born On": "March 11, 1952",
+        "Location": "Cambridge, England, The United Kingdom"
+    },
+    "Elie Wiesel": {
+        "Born On": "September 30, 1928",
+        "Location": "Sighet, Romania"
+    },
+    "Friedrich Nietzsche": {
+        "Born On": "October 15, 1844",
+        "Location": "Röcken bei Lützen, Prussian Province of Saxony, Germany"
+    },
+    "Mark Twain": {
+        "Born On": "November 30, 1835",
+        "Location": "Florida, Missouri, The United States"
+    },
+    "Allen Saunders": {
+        "Born On": "April 24, 1899",
+        "Location": "The United States"
+    },
+    "Pablo Neruda": {
+        "Born On": "July 12, 1904",
+        "Location": "Parral, Chile"
+    },
+    "Ralph Waldo Emerson": {
+        "Born On": "May 25, 1803",
+        "Location": "Boston, Massachusetts, The United States"
+    },
+    "Mother Teresa": {
+        "Born On": "August 26, 1910",
+        "Location": "Skopje, Macedonia, the Former Yugoslav Republic of"
+    },
+    "Garrison Keillor": {
+        "Born On": "August 07, 1942",
+        "Location": "Anoka, Minnesota, The United States"
+    },
+    "Jim Henson": {
+        "Born On": "September 24, 1936",
+        "Location": "Greenville, Mississippi, The United States"
+    },
+    "Charles M. Schulz": {
+        "Born On": "November 26, 1922",
+        "Location": "Minneapolis, MN, The United States"
+    },
+    "William Nicholson": {
+        "Born On": "January 12, 1948",
+        "Location": "Lewes, Sussex, The United Kingdom"
+    },
+    "Jorge Luis Borges": {
+        "Born On": "August 24, 1899",
+        "Location": "Buenos Aires, Argentina"
+    },
+    "George Eliot": {
+        "Born On": "November 22, 1819",
+        "Location": "South Farm, Arbury Hall, Nuneaton, Warwickshire, The United Kingdom"
+    },
+    "George R.R. Martin": {
+        "Born On": "September 20, 1948",
+        "Location": "Bayonne, New Jersey, The United States"
+    },
+    "C.S. Lewis": {
+        "Born On": "November 29, 1898",
+        "Location": "Belfast, Ireland"
+    },
+    "Martin Luther King Jr.": {
+        "Born On": "January 15, 1929",
+        "Location": "Atlanta, Georgia, The United States"
+    },
+    "James Baldwin": {
+        "Born On": "August 02, 1924",
+        "Location": "Harlem, New York, The United States"
+    },
+    "Haruki Murakami": {
+        "Born On": "January 12, 1949",
+        "Location": "Kyoto, Japan"
+    },
+    "Alexandre Dumas fils": {
+        "Born On": "July 27, 1824",
+        "Location": "Paris, France"
+    },
+    "Stephenie Meyer": {
+        "Born On": "December 24, 1973",
+        "Location": "Connecticut, The United States"
+    },
+    "Ernest Hemingway": {
+        "Born On": "July 21, 1899",
+        "Location": "Oak Park, Illinois, The United States"
+    },
+    "Helen Keller": {
+        "Born On": "June 27, 1880",
+        "Location": "Tuscumbia, Alabama, The United States"
+    },
+    "George Bernard Shaw": {
+        "Born On": "July 26, 1856",
+        "Location": "Dublin, Ireland"
+    },
+    "Charles Bukowski": {
+        "Born On": "August 16, 1920",
+        "Location": "Andernach, Germany"
+    },
+    "Suzanne Collins": {
+        "Born On": "August 11, 1962",
+        "Location": "Hartford, Connecticut, The United States"
+    },
+    "J.R.R. Tolkien": {
+        "Born On": "January 03, 1892",
+        "Location": "Bloemfontein, Mangaung, Free State, South Africa"
+    },
+    "Alfred Tennyson": {
+        "Born On": "August 06, 1809",
+        "Location": "Somersby, Lincolnshire, The United Kingdom"
+    },
+    "Terry Pratchett": {
+        "Born On": "April 28, 1948",
+        "Location": "Beaconsfield, Buckinghamshire, England, The United Kingdom"
+    },
+    "J.D. Salinger": {
+        "Born On": "January 01, 1919",
+        "Location": "Manhattan, New York, The United States"
+    },
+    "George Carlin": {
+        "Born On": "May 12, 1937",
+        "Location": "New York, New York, The United States"
+    },
+    "John Lennon": {
+        "Born On": "October 09, 1940",
+        "Location": "Liverpool, England, The United Kingdom"
+    },
+    "W.C. Fields": {
+        "Born On": "January 29, 1880",
+        "Location": "Darby, Pennsylvania, The United States"
+    },
+    "Ayn Rand": {
+        "Born On": "February 02, 1905",
+        "Location": "St. Petersburg, Russian Federation"
+    },
+    "Jimi Hendrix": {
+        "Born On": "November 27, 1942",
+        "Location": "Seattle, Washington, The United States"
+    },
+    "J.M. Barrie": {
+        "Born On": "May 09, 1860",
+        "Location": "Kirriemuir, Angus, Scotland, The United Kingdom"
+    },
+    "E.E. Cummings": {
+        "Born On": "October 14, 1894",
+        "Location": "Cambridge, Massachusetts, The United States"
+    },
+    "Khaled Hosseini": {
+        "Born On": "March 04, 1965",
+        "Location": "Kabul, Afghanistan"
+    },
+    "Harper Lee": {
+        "Born On": "April 28, 1926",
+        "Location": "Monroeville, Alabama, The United States"
+    },
+    "Madeleine L'Engle": {
+        "Born On": "November 29, 1918",
+        "Location": "New York City, New York, The United States"
+    }
+}
