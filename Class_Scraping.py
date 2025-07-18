@@ -1,13 +1,124 @@
 import requests
 from bs4 import BeautifulSoup
 from collections import defaultdict
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, Literal
 import json
 import random
 import time
 from colorama import Fore, init
 
-class QuoteScraping:
+
+class CommonMethods:
+    """
+    A base class for common methods used in scraping applications.
+
+    **Instance Attributes:**
+    - `timeout`: Timeout for requests in seconds. Recommended to keep it low to avoid long waits.
+    - `session`: A requests session for making HTTP requests. Sessions are more efficient for multiple requests.
+    - `header`: Headers to mimic a browser request.
+    - `delay`: Random delay between requests to avoid increasing traffic on the server.
+
+    **Methods:**
+    - `write_to_json`: Writes the scraped data to a JSON file.
+    - `write_to_text`: Writes the scraped data to a text file.
+    """
+    def __init__(self) -> None:
+        """
+        Initializes the class with a session, headers, and timeout settings.
+
+        **Attributes:**
+        - `timeout`: Timeout for requests in seconds. Recommended to keep it low to avoid long waits.
+        - `session`: A requests session for making HTTP requests. Sessions are more efficient for multiple requests.
+        - `header`: Headers to mimic a browser request.
+        - `delay`: Random delay between requests to avoid increasing traffic on the server.
+        """
+        self.timeout = 5
+        self.session = requests.Session()
+        self.header = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"}      # Chrome browser string
+        self.delay = [1, 2]
+
+    @staticmethod
+    def write_to_json(data: Dict[str, Dict[str, Any]], filename: str, mode: Literal['w', 'a']) -> None:
+        """
+        Writes the scraped data to a JSON file. Intended for storing quotes of an author or author details.
+        
+        **Parameters:**
+        - `data` (Dict[str, Dict[str, Any]]): The data to be written to the JSON file.
+        - `filename` (str): The name of the file where the data will be saved.
+        - `mode` (Literal['w', 'a']): The mode in which to open the file. 'w' for write (overwrites existing file), 'a' for append (adds to existing file).
+
+        **Raises:**
+        - `TypeError`: If `filename` is not a string.
+        - `ValueError`: If `mode` is not 'w' or 'a'.
+        - `TypeError`: If `data` is not a dictionary.
+
+        **Example:**
+        ```python
+        data = {
+            "Author 1": {"Quote 1": ["tag1", "tag2"], "Quote 2": ["tag3"]},
+            "Author 2": {"Quote 3": ["tag4"]}
+        }
+        QuoteScraping.write_to_json(data, "quotes.json", mode='w')
+        """
+        if not isinstance(data, dict):
+            raise TypeError(Fore.RED + "Data must be a dictionary")
+        if not isinstance(filename, str):
+            raise TypeError(Fore.RED + "Filename must be a string")
+        if mode not in ['w', 'a']:
+            raise ValueError(Fore.RED + "Mode must be 'w' for write or 'a' for append")
+        
+        if mode == 'w':
+            with open(file=filename, mode='w', encoding='utf-8') as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+        
+        else:       # For appending data to existing file, read previous data first
+            with open(file=filename, mode='r', encoding='utf-8') as f:
+                previous_data = json.load(f)
+
+                # Append current data into previous dictionary
+                for i in data:
+                    if i in previous_data:
+                        previous_data[i].update(data[i])
+                    else:
+                        previous_data[i] = data[i]
+            
+            # Write final dictionary
+            with open(file=filename, mode='w', encoding='utf-8') as f:
+                json.dump(previous_data, f, indent=4, ensure_ascii=False)
+
+    @staticmethod
+    def write_to_text(data: List[str], filename: str, mode: Literal['a', 'w']) -> None:
+        """
+        Writes the scraped data to a text file. Intended for storing author list.
+
+        **Parameters:**
+        - `data` (List[str]): The data to be written to the text file.
+        - `filename` (str): The name of the file where the data will be saved.
+        - `mode` (Literal['a', 'w']): The mode in which to open the file. 'a' for append (adds to existing file), 'w' for write (overwrites existing file).
+
+        **Raises:**
+        - `TypeError`: If `filename` is not a string.
+        - `ValueError`: If `mode` is not 'a' or 'w'.
+        - `TypeError`: If `data` is not a list.
+         
+        **Example:**
+        ```python
+        data = ["Author 1", "Author 2", "Author 3"]
+        QuoteScraping.write_to_text(data, "authors.txt", mode='w')
+        """
+        if not isinstance(data, list):
+            raise TypeError(Fore.RED + "Data must be a list")
+        if not isinstance(filename, str):
+            raise TypeError(Fore.RED + "Filename must be a string")
+        if mode not in ['a', 'w']:
+            raise ValueError(Fore.RED + "Mode must be 'a' for append or 'w' for write")
+        
+        with open(file=filename, mode=mode) as f:
+            for i in data:
+                element = str(i) + '\n'
+                f.write(element)
+
+class QuoteScraping(CommonMethods):
     """ 
     A class for scraping quotes and author information from a quotes website.
  
@@ -26,7 +137,8 @@ class QuoteScraping:
     - `scrape_author_info`: Scrapes information about a specific author.
     - `scrape_all_quotes`: Scrapes all quotes from the quotes website.
     - `scrape_all_authors`: Scrapes information about all authors from the quotes website.
-    - `write_to_json`: Writes the scraped data to a JSON file.
+    - `write_to_json`: Writes the scraped data to a JSON file (inherited from `CommonMethods`).
+    - `write_to_text`: Writes the scraped data to a text file (inherited from `CommonMethods`).
 
     **Example:**
     ```python
@@ -38,21 +150,6 @@ class QuoteScraping:
     base_url = "https://quotes.toscrape.com/"
     init(autoreset=True)
 
-    def __init__(self) -> None:
-        """
-        Initializes the class with a session, headers, and timeout settings.
-
-        **Attributes:**
-        - `timeout`: Timeout for requests in seconds. Recommended to keep it low to avoid long waits.
-        - `session`: A requests session for making HTTP requests. Sessions are more efficient for multiple requests.
-        - `header`: Headers to mimic a browser request.
-        - `delay`: Random delay between requests to avoid increasing traffic on the server.
-        """
-        self.timeout = 5
-        self.session = requests.Session()
-        self.header = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"}      # Chrome browser string
-        self.delay = [1.5, 3]
-
     def author_list(self) -> List[str]:
         """
         Scrapes the list of authors from the quotes website.
@@ -61,7 +158,7 @@ class QuoteScraping:
         `List[str]`: A list of unique author names found on the site.
         """
         url = QuoteScraping.base_url
-        author_set = set()
+        author_set = set()      # To avoid duplicate entries
         page_count = 0
 
         while url:
@@ -71,11 +168,12 @@ class QuoteScraping:
                 raise Exception(f"Error fetching {url}: {e}")
             
             page_count += 1
-            print(f"Scraping page {page_count}...")
+            print(Fore.GREEN + f"Scraping page {page_count}...")
             
             soup = BeautifulSoup(response.text, "html.parser")
             authors = soup.select("small.author")
             
+            # Scrape all authors in current page
             author_set.update([author.get_text(strip=True) for author in authors])
             next_button = soup.find("li", class_="next")
 
@@ -111,9 +209,9 @@ class QuoteScraping:
         ```
         """
         if not isinstance(author, str):
-            raise TypeError("Author name must be a string.")
+            raise TypeError(Fore.RED + "Author name must be a string.")
         if not isinstance(print_quotes, bool):
-            raise TypeError("print_quotes must be a boolean value.")
+            raise TypeError(Fore.RED + "print_quotes must be a boolean value.")
         
         page_count = 0
         author_quotes = dict()
@@ -124,17 +222,18 @@ class QuoteScraping:
             try:
                 response = self.session.get(url, timeout=self.timeout, headers=self.header)
             except requests.exceptions.RequestException as e:
-                raise Exception(f"Error fetching {url}: {e}")
+                raise Exception(Fore.RED + f"Error fetching {url}: {e}")
 
             page_count += 1
             print(Fore.GREEN + f"Searching page {page_count}...")
             print()
             soup = BeautifulSoup(response.text, "html.parser")
-            authors = soup.find_all("small", class_="author")
+            authors = soup.find_all("small", class_="author")   # All authors in current page
 
             for auth in authors:
                 name = auth.get_text(strip=True).lower()
 
+                # If name matches, scrape quote and tags
                 if name == author:
                     quote = auth.find_parent("div", class_="quote")
                     text = quote.select_one("span.text").get_text(strip=True)
@@ -158,9 +257,9 @@ class QuoteScraping:
                 break
         
         if len(author_quotes) == 0:
-            raise ValueError(f"No quotes found for author {author}.")
+            raise ValueError(Fore.RED + f"No quotes found for author {author}.")
         
-        return dict(author_quotes)
+        return author_quotes
     
     def scrape_author_info(self, author: str, print_info: bool = True) -> Dict[str, str]:
         """ Scrapes information about a specific author from the quotes website.
@@ -185,9 +284,9 @@ class QuoteScraping:
         ```
         """
         if not isinstance(author, str):
-            raise TypeError("Author name must be a string.")
+            raise TypeError(Fore.RED + "Author name must be a string.")
         if not isinstance(print_info, bool):
-            raise TypeError("print_info must be a boolean value.")
+            raise TypeError(Fore.RED + "print_info must be a boolean value.")
         
         page_count = 0
         author = author.lower()
@@ -197,16 +296,17 @@ class QuoteScraping:
             try:
                 response = self.session.get(url, timeout=self.timeout, headers=self.header)
             except requests.exceptions.RequestException as e:
-                raise Exception(f"Error fetching {url}: {e}")
+                raise Exception(Fore.RED + f"Error fetching {url}: {e}")
             
             page_count += 1
             print(Fore.GREEN + f"Searching page {page_count}...")
             soup = BeautifulSoup(response.text, "html.parser")          
-            authors = soup.find_all("small", class_="author")
+            authors = soup.find_all("small", class_="author")       # All authors in current page
 
             for auth in authors:
                 name = auth.get_text(strip=True)
 
+                # If name matches, scrape info
                 if name.lower() == author:
                     quote = auth.find_parent("div", class_="quote")
                     about_href = quote.find("a", class_=None)["href"]
@@ -218,7 +318,7 @@ class QuoteScraping:
                     born = author_soup.select_one("span.author-born-date").get_text(strip=True)
                     location = author_soup.select_one("span.author-born-location").get_text(strip=True)
                     description = author_soup.select_one("div.author-description").get_text(strip=True)
-                    description = ".".join(description.split('.', maxsplit=6)[:5])
+                    description = ".".join(description.split('.', maxsplit=6)[:5])      # Display only part of the description to keep it short
 
                     if print_info:
                         print()
@@ -240,7 +340,7 @@ class QuoteScraping:
             else:
                 break
 
-            raise ValueError(f"Author {author} not found.")
+        raise ValueError(Fore.RED + f"Author {author} not found.")
     
     def scrape_all_quotes(self) -> Dict[str, Dict[str, List[str]]]:
         """ Scrapes all quotes from the quotes website.
@@ -265,13 +365,13 @@ class QuoteScraping:
             try:
                 response = self.session.get(url, timeout=self.timeout, headers=self.header)     # Getting response from website
             except requests.exceptions.RequestException as e:
-                raise Exception(f"Error fetching {url}: {e}")
+                raise Exception(Fore.RED + f"Error fetching {url}: {e}")
 
             soup = BeautifulSoup(response.text, "html.parser")
             quotes = soup.find_all("div", class_="quote")       # Find all quotes in 1 page
 
             page_count += 1
-            print(f"Scraping page {page_count}...")
+            print(Fore.GREEN + f"Scraping page {page_count}...")
 
             for quote in quotes:
                 text = quote.find("span", class_="text").get_text(strip=True)       # quote_text
@@ -315,7 +415,7 @@ class QuoteScraping:
             try:
                 response = requests.get(url, timeout=5, headers=self.header)     # Getting response from website
             except requests.exceptions.RequestException as e:
-                raise Exception(f"Error fetching {url}: {e}")
+                raise Exception(Fore.RED + f"Error fetching {url}: {e}")
 
             soup = BeautifulSoup(response.text, "html.parser")
             authors = soup.select("small.author")
@@ -354,28 +454,10 @@ class QuoteScraping:
                 url = None
 
         return author_details
-    
-    @staticmethod
-    def write_to_json(data: Dict[str, Any], filename: str) -> None:
-        """ Writes the scraped data to a JSON file.
-        
-        **Parameters:**
-        - `data` (Dict[str, Any]): The data to be written to the JSON file.
-        - `filename` (str): The name of the file where the data will be saved.
-
-        **Raises:**
-        - `TypeError`: If `filename` is not a string or `data` is not a dictionary.
-        """
-        if not isinstance(filename, str):
-            raise TypeError("Filename must be a string")
-        if not isinstance(data, dict):
-            raise TypeError("Data must be a dictionary")
-        
-        with open(file=filename, mode='w', encoding='utf-8') as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
 
 
-class BookScraping(QuoteScraping):
+
+class BookScraping(CommonMethods):
     """
     A class for scraping books and their information from a books website.
 
@@ -394,7 +476,8 @@ class BookScraping(QuoteScraping):
     - `scrape_books_from_genre`: Scrapes books from a specific genre on the books website.
     - `scrape_book_info`: Scrapes information about a specific book from its URL.
     - `scrape_all_books`: Scrapes all books from the books website.
-    - `write_to_json`: Writes the scraped data to a JSON file (inherited from `QuoteScraping`).
+    - `write_to_json`: Writes the scraped data to a JSON file (inherited from `CommonMethods`).
+    - `write_to_text`: Writes the scraped data to a text file (inherited from `CommonMethods`).
 
     **Example:**
     ```python
