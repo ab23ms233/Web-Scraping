@@ -13,13 +13,19 @@ class CommonMethods:
     """
     A base class for common methods used in scraping applications.
 
-    **Instance Attributes:**
-    - `timeout`: Timeout for requests in seconds. Recommended to keep it low to avoid long waits.
-    - `session`: A requests session for making HTTP requests. Sessions are more efficient for multiple requests.
-    - `header`: Headers to mimic a browser request.
-    - `delay`: Random delay between requests to avoid increasing traffic on the server.
+    Instance Attributes:
+    ---------------------------
+        timeout: int 
+            Timeout for requests in seconds.
+        session: requests.Session 
+            A requests session for making HTTP requests. Sessions are more efficient for multiple requests.
+        header: Dict[str, str] 
+            Headers to mimic a browser request.
+        delay: List[int] 
+            Random delay between requests to avoid increasing traffic on the server.
 
-    **Methods:**
+    Methods:
+    ------------------------
     - `write_to_json`: Writes the scraped data to a JSON file.
     - `write_to_text`: Writes the scraped data to a text file.
     """
@@ -27,11 +33,11 @@ class CommonMethods:
         """
         Initializes the class with a session, headers, and timeout settings.
 
-        **Attributes:**
-        - `timeout`: Timeout for requests in seconds. Recommended to keep it low to avoid long waits.
-        - `session`: A requests session for making HTTP requests. Sessions are more efficient for multiple requests.
-        - `header`: Headers to mimic a browser request.
-        - `delay`: Random delay between requests to avoid increasing traffic on the server.
+        Attributes:
+            timeout (int): Timeout for requests in seconds. Recommended to keep it low to avoid long waits.
+            session (requests.Session): A requests session for making HTTP requests. Sessions are more efficient for multiple requests.
+            header (Dict[str, str]): Headers to mimic a browser request.
+            delay (List[int]): Random delay between requests to avoid increasing traffic on the server.
         """
         self.timeout = 5
         self.session = requests.Session()
@@ -43,17 +49,17 @@ class CommonMethods:
         """
         Writes the scraped data to a JSON file. Intended for storing quotes of an author or author details.
         
-        **Parameters:**
-        - `data` (Dict[str, Dict[str, Any]]): The data to be written to the JSON file.
-        - `filename` (str): The name of the file where the data will be saved.
-        - `mode` (Literal['w', 'a']): The mode in which to open the file. 'w' for write (overwrites existing file), 'a' for append (adds to existing file).
+        Parameters:
+            data (Dict[str, Dict[str, Any]]): The data to be written to the JSON file.
+            filename (str): The name of the file where the data will be saved.
+            mode (Literal['w', 'a']): The mode in which to open the file. 'w' for write (overwrites existing file), 'a' for append (adds to existing file).
 
-        **Raises:**
-        - `TypeError`: If `filename` is not a string.
-        - `ValueError`: If `mode` is not 'w' or 'a'.
-        - `TypeError`: If `data` is not a dictionary.
+        Raises:
+            TypeError: If `filename` is not a string.
+            ValueError: If `mode` is not 'w' or 'a'.
+            TypeError: If `data` is not a dictionary.
 
-        **Example:**
+        Example:
         ```python
         data = {
             "Author 1": {"Quote 1": ["tag1", "tag2"], "Quote 2": ["tag3"]},
@@ -92,17 +98,17 @@ class CommonMethods:
         """
         Writes the scraped data to a text file. Intended for storing author list.
 
-        **Parameters:**
-        - `data` (List[str]): The data to be written to the text file.
-        - `filename` (str): The name of the file where the data will be saved.
-        - `mode` (Literal['a', 'w']): The mode in which to open the file. 'a' for append (adds to existing file), 'w' for write (overwrites existing file).
+        Parameters:
+            data (List[str]): The data to be written to the text file.
+            filename (str): The name of the file where the data will be saved.
+            mode (Literal['a', 'w']): The mode in which to open the file. 'a' for append (adds to existing file), 'w' for write (overwrites existing file).
 
-        **Raises:**
-        - `TypeError`: If `filename` is not a string.
-        - `ValueError`: If `mode` is not 'a' or 'w'.
-        - `TypeError`: If `data` is not a list.
+        Raises:
+            TypeError: If `filename` is not a string.
+            ValueError: If `mode` is not 'a' or 'w'.
+            TypeError: If `data` is not a list.
          
-        **Example:**
+        Example:
         ```python
         data = ["Author 1", "Author 2", "Author 3"]
         QuoteScraping.write_to_text(data, "authors.txt", mode='w')
@@ -123,16 +129,26 @@ class QuoteScraping(CommonMethods):
     """ 
     A class for scraping quotes and author information from a quotes website.
  
-    **Class Attributes:**
-    `base_url`: The base URL of the quotes website.
+    Class Attributes:
+    ----------------------
+        base_url: str
+            The base URL of the quotes website.
     
-    **Instance Attributes:**
-    - `timeout`: Timeout for requests in seconds.
-    - `session`: A requests session for making HTTP requests. Sessions are more efficient for multiple requests.
-    - `header`: Headers to mimic a browser request.
-    - `delay`: Random delay between requests to avoid increasing traffic on the server.
+    Instance Attributes:
+    ------------------------
+        timeout: int 
+            Timeout for requests in seconds.
+        session: requests.Session 
+            A requests session for making HTTP requests. Sessions are more efficient for multiple requests.
+        header: Dict[str, str] 
+            Headers to mimic a browser request.
+        delay: List[int] 
+            Random delay between requests to avoid increasing traffic on the server.
+        author_details: Dict[str, str]
+                A dictionary to store author names and their corresponding URLs. It is used to avoid repeated scraping of the same author.
  
-    **Methods:**
+    Methods:
+    ----------------------------
     - `author_list`: Scrapes the list of authors from the quotes website.
     - `scrape_author_quotes`: Scrapes quotes by a specific author.
     - `scrape_author_info`: Scrapes information about a specific author.
@@ -141,7 +157,8 @@ class QuoteScraping(CommonMethods):
     - `write_to_json`: Writes the scraped data to a JSON file (inherited from `CommonMethods`).
     - `write_to_text`: Writes the scraped data to a text file (inherited from `CommonMethods`).
 
-    **Example:**
+    Example:
+    ----------------------------
     ```python
     scraper = QuoteScraping()
     authors = scraper.author_list()
@@ -153,61 +170,125 @@ class QuoteScraping(CommonMethods):
 
     def __init__(self) -> None:
         super().__init__()
-        self.author_details = None
+        self.author_urls = dict()
 
     def author_list(self) -> List[str]:
         """
         Scrapes the list of authors from the quotes website.
 
-        **Returns:**
-        `List[str]`: A list of unique author names found on the site.
+        Returns:
+            List[str]: A list of unique author names found on the site.
         """
-        url = QuoteScraping.base_url
         author_set = set()      # To avoid duplicate entries
-        page_count = 0
 
-        while url:
-            try:
-                response = self.session.get(url, timeout=self.timeout, headers=self.header)
-            except requests.exceptions.RequestException as e:
-                raise Exception(f"Error fetching {url}: {e}")
-            
-            page_count += 1
-            print(Fore.GREEN + f"Scraping page {page_count}...")
-            
-            soup = BeautifulSoup(response.text, "html.parser")
-            authors = soup.select("small.author")
-            
-            # Scrape all authors in current page
-            author_set.update([author.get_text(strip=True) for author in authors])
-            next_button = soup.find("li", class_="next")
+        if len(self.author_urls) == 0:
+            url = QuoteScraping.base_url  
+            page_count = 0
 
-            if next_button:
-                next_href = next_button.find("a")["href"]
-                url = QuoteScraping.base_url + next_href
-                time.sleep(random.uniform(self.delay[0], self.delay[1]))
+            while url:
+                try:
+                    response = self.session.get(url, timeout=self.timeout, headers=self.header)
+                except requests.exceptions.RequestException as e:
+                    raise Exception(f"Error fetching {url}: {e}")
+
+                page_count += 1
+                print(Fore.GREEN + f"Scraping page {page_count}...")
+
+                soup = BeautifulSoup(response.text, "html.parser")
+                authors = soup.select("small.author")
+
+                # Scrape all authors in current page
+                for author in authors:
+                    name = author.get_text(strip=True)
+                    author_set.add(name)
+
+                    if name not in self.author_urls:
+                        about_href = author.find_parent("div", class_="quote").find("a", class_=None)["href"]
+                        author_url = QuoteScraping.base_url + about_href
+                        self.author_urls[name] = author_url
+
+                self.author_urls["last page"] = page_count
+                next_button = soup.find("li", class_="next")
+
+                if next_button:
+                    next_href = next_button.find("a")["href"]
+                    url = QuoteScraping.base_url + next_href
+                    time.sleep(random.uniform(self.delay[0], self.delay[1]))
+                else:
+                    self.author_urls["next href"] = None
+                    break
+            
+            return list(author_set)
+        
+        else:
+            if self.author_urls["next href"]:
+                for name in self.author_urls:
+                    if name in ["last page", "next href"]:
+                        continue
+                    author_set.add(name)
+
+                url = QuoteScraping.base_url + self.author_urls["next href"]
+                page_count = self.author_urls["next page"]
+
+                while url:
+                    try:
+                        response = self.session.get(url, timeout=self.timeout, headers=self.header)
+                    except requests.exceptions.RequestException as e:
+                        raise Exception(f"Error fetching {url}: {e}")
+
+                    page_count += 1
+                    print(Fore.GREEN + f"Scraping page {page_count}...")
+
+                    soup = BeautifulSoup(response.text, "html.parser")
+                    authors = soup.select("small.author")
+
+                    # Scrape all authors in current page
+                    for author in authors:
+                        name = author.get_text(strip=True)
+                        author_set.add(name)
+
+                        if name not in self.author_urls:
+                            about_href = author.find_parent("div", class_="quote").find("a", class_=None)["href"]
+                            author_url = QuoteScraping.base_url + about_href
+                            self.author_urls[name] = author_url
+
+                    self.author_urls["last page"] = page_count
+                    next_button = soup.find("li", class_="next")
+
+                    if next_button:
+                        next_href = next_button.find("a")["href"]
+                        url = QuoteScraping.base_url + next_href
+                        time.sleep(random.uniform(self.delay[0], self.delay[1]))
+                    else:
+                        self.author_urls["next href"] = None
+                        break
+                
+                return list(author_set)
+                    
             else:
-                break
-
-        return list(author_set)
-    
+                names = list(self.author_urls.keys())
+                names.remove("last page")
+                names.remove("next href")
+                return names
+            
     def scrape_author_quotes(self, author: str, print_quotes: bool = True) -> Dict[str, List[str]]:
-        """ Scrapes quotes by a specific author from the quotes website.
+        """
+        Scrapes quotes by a specific author from the quotes website.
         
-        **Parameter:**
-        - `author` (str): The name of the author whose quotes are to be scraped.
-        - `print_quotes` (bool): If True, prints the quotes and their tags to the console. Default is True.
+        Parameters:
+            author (str): The name of the author whose quotes are to be scraped.
+            print_quotes (bool): If True, prints the quotes and their tags to the console. Default is True.
         
-        **Returns:**
-        `Dict[str, List[str]]`: A dictionary where keys are quotes and values are lists of tags associated with each quote.
+        Returns:
+            dict: A dictionary where keys are quotes and values are lists of tags associated with each quote.
         
-        **Raises:**
-        - `TypeError`: If the author name is not a string.
-        - `TypeError`: If `print_quotes` is not a boolean.
-        - `ValueError`: If no quotes are found for the specified author.
-        - `Exception`: If there is an error fetching the page.
+        Raises:
+            TypeError: If the author name is not a string.
+            TypeError: If `print_quotes` is not a boolean.
+            ValueError: If no quotes are found for the specified author.
+            Exception: If there is an error fetching the page.
         
-        **Example:**
+        Example:
         ```python
         scraper = QuoteScraping()
         scraper.scrape_author_quotes("Albert Einstein")
@@ -240,7 +321,7 @@ class QuoteScraping(CommonMethods):
                 similarity = difflib.SequenceMatcher(None, name, author, autojunk=True).ratio()
 
                 # If name matches, scrape quote and tags
-                if similarity >= 0.9:
+                if similarity >= 0.85:
                     quote = auth.find_parent("div", class_="quote")
                     text = quote.select_one("span.text").get_text(strip=True)
                     tags = [tag.get_text(strip=True) for tag in quote.select("a.tag")]
@@ -266,101 +347,158 @@ class QuoteScraping(CommonMethods):
             raise ValueError(Fore.RED + f"No quotes found for author {author}.")
         
         return author_quotes
-    
-    def scrape_author_info(self, author: str, print_info: bool = True) -> Dict[str, str]:
-        """ Scrapes information about a specific author from the quotes website.
         
-        **Parameter:**
-        - `author` (str): The name of the author whose information is to be scraped.
-        - `print_info` (bool): If True, prints the author's information to the console. Default is True.
-        
-        **Returns:**
-        `Dict[str, str]`: A dictionary containing the author's birth date, location, and a brief bio.
-        
-        **Raises:**
-        - `TypeError`: If the author name is not a string.
-        - `TypeError`: If `print_info` is not a boolean.
-        - `ValueError`: If the author is not found on the site.
-        - `Exception`: If there is an error fetching the page.
-        
-        **Example:**
+    def get_author_url(self, author: str) -> str:
+        """
+        Gets the URL of a specific author from the quotes website.
+
+        Parameters:
+            author (str): The name of the author whose URL is to be fetched.
+
+        Returns:
+            str: The URL of the author on the quotes website.
+
+        Raises:
+            TypeError: If the author name is not a string.
+            ValueError: If the author is not found on the site.
+            Exception: If there is an error fetching the page.
+
+        Example:
         ```python
         scraper = QuoteScraping()
-        scraper.scrape_author_info("Albert Einstein")
-        ```
+        author_url = scraper.get_author_url("Albert Einstein")
+        print(author_url)
         """
         if not isinstance(author, str):
-            raise TypeError(Fore.RED + "Author name must be a string.")
-        if not isinstance(print_info, bool):
-            raise TypeError(Fore.RED + "print_info must be a boolean value.")
+            raise TypeError(Fore.RED + "author must be a string")
         
-        if self.author_details is None:
+        author = author.lower().strip()      # Normalizing author name
+        similarity_cutoff = 0.85        # Passed author name and actual author name must have this similarity to be considered
+
+        if len(self.author_urls) != 0:    # Checking if author_url is present   
+            match = difflib.get_close_matches(author, self.author_urls.keys(), n=1, cutoff=0.85)
+
+            if match:       # If author_url is already present
+                name = match[0]
+                author_url = self.author_urls[name]
+                return author_url
+
+            else:       # If author_url is not present
+                page_count = self.author_urls["last page"]    # Last page that was fully scraped
+                next_href = self.author_urls["next href"]    # href for next page to be scraped
+                url = QuoteScraping.base_url + next_href    # url for current page
+
+        else:       # If author_url is not present
             page_count = 0
-            author = author.lower()
             url = QuoteScraping.base_url
 
-            while url:
-                try:
-                    response = self.session.get(url, timeout=self.timeout, headers=self.header)
-                except requests.exceptions.RequestException as e:
-                    raise Exception(Fore.RED + f"Error fetching {url}: {e}")
-
-                page_count += 1
-                print(Fore.GREEN + f"Searching page {page_count}...")
-                soup = BeautifulSoup(response.text, "html.parser")          
-                authors = soup.find_all("small", class_="author")       # All authors in current page
-
-                for auth in authors:
-                    name = auth.get_text(strip=True)
-
-                    # If name matches, scrape info
-                    if name.lower() == author:
-                        quote = auth.find_parent("div", class_="quote")
-                        about_href = quote.find("a", class_=None)["href"]
-                        author_url = QuoteScraping.base_url + about_href
-
-                        author_response = self.session.get(author_url, timeout=self.timeout, headers=self.header)
-                        author_soup = BeautifulSoup(author_response.text, "html.parser")
-
-                        born = author_soup.select_one("span.author-born-date").get_text(strip=True)
-                        location = author_soup.select_one("span.author-born-location").get_text(strip=True)
-                        description = author_soup.select_one("div.author-description").get_text(strip=True)
-                        description = ".".join(description.split('.', maxsplit=6)[:5])      # Display only part of the description to keep it short
-
-                        if print_info:
-                            print()
-                            print(f"👤 Author: {name}")
-                            print(f"🎂 Born: {born}")
-                            print(f"📍 Location: {location}")
-                            print(f"📝 Bio: {description}")
-                            print("-" * 70)
-
-                        author_info = {"Born": born, "Location": location, "Bio": description}
-                        return author_info
-
-                next_button = soup.find("li", class_="next")
-
-                if next_button:
-                    next_href = next_button.find("a")["href"]
-                    url = QuoteScraping.base_url + next_href
-                    time.sleep(random.uniform(self.delay[0], self.delay[1]))
-                else:
-                    break
-
-            raise ValueError(Fore.RED + f"Author {author} not found.")
-
+        if page_count == 1:
+            print(f"Author not found in page 1")
         else:
+            print(f"Author not found in pages 1-{page_count}")
+        
+        while url:
+            try:
+                response = self.session.get(url, timeout=self.timeout, headers=self.header)
+            except requests.exceptions.RequestException as e:
+                raise Exception(Fore.RED + f"Error fetching {url}: {e}")
+            
+            page_count += 1
+            print(Fore.GREEN + f"Searching page {page_count}...")
+            soup = BeautifulSoup(response.text, "html.parser")          
+            authors = soup.find_all("small", class_="author")       # All authors in current page
+
+            for auth in authors:
+                name = auth.get_text(strip=True)
+                normalised_name = name.lower()      # Normalizing author name
+
+                quote = auth.find_parent("div", class_="quote")
+                about_href = quote.find("a", class_=None)["href"]
+                author_url = QuoteScraping.base_url + about_href    # Scraping author_url
+
+                self.author_urls[normalised_name] = author_url   # Storing author name and url, even if it does not match, for later use
+                similarity = difflib.SequenceMatcher(isjunk=None, a=normalised_name, b=author).ratio()
+
+                if similarity >= similarity_cutoff:      # If author name matches
+                    return author_url
+            
+            # Pagination
+            next_button = soup.find("li", class_="next")
+            self.author_urls["last page"] = page_count      # Updating last page scraped
+
+            if next_button:
+                next_href = next_button.find("a")["href"]
+                url = QuoteScraping.base_url + next_href
+                self.author_urls["next href"] = next_href       # Updating next page to be scraped
+                time.sleep(random.uniform(self.delay[0], self.delay[1]))    # Reduce traffic on website
+            else:
+                self.author_urls["next href"] = None
+                break
+            
+        raise ValueError(Fore.RED + f"Author {author} not found.")
+
+    def scrape_author_info(self, author_url: str, print_info: bool = True) -> Dict[str, str]:
+        """
+        Scrapes information about a specific author from their URL.
+        
+        Parameters:
+            author_url (str): The URL of the author whose information is to be scraped.
+            print_info (bool): If True, prints the author's information to the console. Default is True.
+        
+        Returns:
+            dict: A dictionary containing the author's birth date, location, and a brief bio.
+        
+        Raises:
+            TypeError: If the author_url is not a string.
+            TypeError: If `print_info` is not a boolean.
+            Exception: If there is an error fetching the page.
+        
+        Example:
+        ```python
+        scraper = QuoteScraping()
+        
+        ```
+        """
+        if not isinstance(author_url, str):
+            raise TypeError(Fore.RED + "author_url must be a string.")
+        if not isinstance(print_info, bool):
+            raise TypeError(Fore.RED + "print_info must be a boolean value.")
+
+        try:
+            author_response = self.session.get(author_url, timeout=self.timeout, headers=self.header)
+        except requests.exceptions.RequestException as e:
+            raise Exception(Fore.RED + f"Error fetching {author_url}: {e}")
+        
+        author_soup = BeautifulSoup(author_response.text, "html.parser")
+
+        name = author_soup.select_one("h3.author-title").get_text(strip=True)      # Author name
+        born = author_soup.select_one("span.author-born-date").get_text(strip=True)
+        location = author_soup.select_one("span.author-born-location").get_text(strip=True)
+        description = author_soup.select_one("div.author-description").get_text(strip=True)
+        description = ".".join(description.split('.', maxsplit=6)[:5])      # Display only part of the description to keep it short
+
+        if print_info:
+            print()
+            print(f"👤 Author: {name}")
+            print(f"🎂 Born: {born}")
+            print(f"📍 Location: {location}")
+            print(f"📝 Bio: {description}")
+            print("-" * 60)
+
+        author_info = {"Born": born, "Location": location, "Bio": description}
+        return author_info
 
     def scrape_all_quotes(self) -> Dict[str, Dict[str, List[str]]]:
-        """ Scrapes all quotes from the quotes website.
+        """
+        Scrapes all quotes from the quotes website.
         
-        **Returns:**
-        `Dict[str, Dict[str, List[str]]]`: A dictionary where keys are author names and values are dictionaries with tags as keys and lists of quotes as values.
+        Returns:
+            dict: A dictionary where keys are author names and values are dictionaries with tags as keys and lists of quotes as values.
         
-        **Raises:**
-        - `Exception`: If there is an error fetching the page.
+        Raises:
+            Exception: If there is an error fetching the page.
         
-        **Example:**
+        Example:
         ```python
         scraper = QuoteScraping()
         all_quotes = scraper.scrape_all_quotes()
@@ -405,32 +543,46 @@ class QuoteScraping(CommonMethods):
         """
         Scrapes information about all authors from the quotes website.
         
-        **Returns:**
-        `Dict[str, str]`: A dictionary where keys are author names and values are dictionaries with their birth date, location, and bio.
+        Returns:
+            dict: A dictionary where keys are author names and values are dictionaries with their birth date, location, and bio.
         
-        **Raises:**
-        - `Exception`: If there is an error fetching the page.
+        Raises:
+            Exception: If there is an error fetching the page.
         
-        **Example:**
+        Example:
         ```python
         scraper = QuoteScraping()
         all_authors = scraper.scrape_all_authors()
         ```
         """
         author_details = dict()      # Author details are stored here
-        page_count = 0
-        url = QuoteScraping.base_url
-        
+
+        if len(self.author_urls) == 0:
+            page_count = 0
+            url = QuoteScraping.base_url
+
+        else:
+            for name in self.author_urls:
+                if name in ["last page", "next_href"]:
+                    continue
+
+                author_url = self.author_urls[name]
+                author_details[name] = self.scrape_author_info(author_url, print_info=False)
+            
+            if self.author_urls["next href"]:
+                url = QuoteScraping.base_url + self.author_urls["next href"]
+                page_count = self.author_urls["last page"]
+
         while url:
             try:
                 response = requests.get(url, timeout=5, headers=self.header)     # Getting response from website
             except requests.exceptions.RequestException as e:
                 raise Exception(Fore.RED + f"Error fetching {url}: {e}")
-
+            
             soup = BeautifulSoup(response.text, "html.parser")
             authors = soup.select("small.author")
-
             page_count += 1
+
             print(Fore.GREEN + f"Scraping page {page_count}...")
             print(Fore.CYAN + "Reading authors: ")
 
@@ -442,6 +594,7 @@ class QuoteScraping(CommonMethods):
                     quote = auth.find_parent("div", class_="quote") 
                     about_href = quote.find("a", class_=None)["href"]
                     author_url = QuoteScraping.base_url + about_href
+                    self.author_urls[name] = author_url
 
                     author_response = requests.get(author_url)
                     author_soup = BeautifulSoup(author_response.text, "html.parser")
@@ -449,20 +602,22 @@ class QuoteScraping(CommonMethods):
                     born = author_soup.find("span", class_="author-born-date").get_text(strip=True)
                     location = author_soup.find("span", class_="author-born-location").get_text(strip=True)[3:]
                     description = author_soup.select_one("div.author-description").get_text(strip=True)
-
                     author_details[name] = {"Born": born, "Location": location, "Bio": description}
+
                     time.sleep(random.uniform(self.delay[0], self.delay[1]))        # Delay requests to reduce traffic on website
-
+            
             print()
+            self.author_urls["last page"] = page_count
             next_button = soup.find("li", class_="next")        # Next button at the end of page for author_details
-
+            
             if next_button:     # If next_buuton is availbale
                 next_href = next_button.find("a")["href"]
                 url = QuoteScraping.base_url + next_href      # url for next page
                 time.sleep(random.uniform(self.delay[0], self.delay[1]))        # Delay requests to reduce traffic on website
             else:
                 url = None
-
+                self.author_urls["next href"] = None
+            
         return author_details
 
 
@@ -471,17 +626,26 @@ class BookScraping(CommonMethods):
     """
     A class for scraping books and their information from a books website.
 
-    **Class Attributes:**
-    - `base_url`: The base URL of the books website.
-    - `rating_map`: A dictionary mapping rating text to numerical values.
+    Class Attributes:
+    -----------------------------
+        base_url: str
+            The base URL of the books website.
+        rating_map: Dict[str, int]
+            A dictionary mapping rating text to numerical values.
 
-    **Instance Attributes:**
-    - `timeout`: Timeout for requests in seconds.
-    - `session`: A requests session for making HTTP requests. Sessions are more efficient for multiple requests.
-    - `header`: Headers to mimic a browser request.
-    - `delay`: Random delay between requests to avoid increasing traffic on the server.
+    Instance Attributes:
+    ------------------------
+        timeout: int 
+            Timeout for requests in seconds.
+        session: requests.Session 
+            A requests session for making HTTP requests. Sessions are more efficient for multiple requests.
+        header: Dict[str, str] 
+            Headers to mimic a browser request.
+        delay: List[int] 
+            Random delay between requests to avoid increasing traffic on the server.
 
-    **Methods:**    
+    Methods:
+    ----------------------------
     - `genre_list`: Scrapes the list of genres from the books website.
     - `scrape_books_from_genre`: Scrapes books from a specific genre on the books website.
     - `scrape_book_info`: Scrapes information about a specific book from its URL.
@@ -489,7 +653,8 @@ class BookScraping(CommonMethods):
     - `write_to_json`: Writes the scraped data to a JSON file (inherited from `CommonMethods`).
     - `write_to_text`: Writes the scraped data to a text file (inherited from `CommonMethods`).
 
-    **Example:**
+    Example:
+    -----------------------------
     ```python
     scraper = BookScraping()
     genres = scraper.genre_list()
@@ -504,13 +669,13 @@ class BookScraping(CommonMethods):
         """
         Scrapes the list of genres from the books website.
         
-        **Returns:**
-        `List[str]`: A list of genres available on the site.
+        Returns:
+            List[str]: A list of genres available on the site.
         
-        **Raises:**
-        `Exception`: If there is an error fetching the page.
+        Raises:
+            Exception: If there is an error fetching the page.
         
-        **Example:**
+        Example:
         ```python
         scraper = BookScraping()
         genres = scraper.genre_list()
@@ -533,20 +698,20 @@ class BookScraping(CommonMethods):
         """ 
         Scrapes books from a specific genre on the books website.
         
-        **Parameter:**
-        - `genre_name` (str): The name of the genre to scrape books from
+        Parameters:
+            genre_name (str): The name of the genre to scrape books from
         
-        **Returns:**
-        `Tuple[List[str], List[str]]`: A tuple containing two lists:
-        - A list of book titles in the specified genre.
-        - A list of corresponding book URLs.
+        Returns:
+            tuple: A tuple containing two lists:
+            - A list of book titles in the specified genre.
+            - A list of corresponding book URLs.
         
-        **Raises:**
-        - `TypeError`: If `genre_name` is not a string.
-        - `ValueError`: If `genre_name` is not present in the list of genres.
-        - `Exception`: If there is an error fetching the page.
+        Raises:
+            TypeError: If `genre_name` is not a string.
+            ValueError: If `genre_name` is not present in the list of genres.
+            Exception: If there is an error fetching the page.
         
-        **Example:**
+        Example:
         ```python
         scraper = BookScraping()
         books, urls = scraper.scrape_books_from_genre("science")
@@ -605,18 +770,18 @@ class BookScraping(CommonMethods):
         """
         Scrapes information about a specific book from its URL.
         
-        **Parameter:**
-        - `book_url` (str): The URL of the book to scrape information from.
-        - `print_info` (bool): If True, prints the book's information to the console. Default is True.
+        Parameters:
+            book_url (str): The URL of the book to scrape information from.
+            print_info (bool): If True, prints the book's information to the console. Default is True.
         
-        **Returns:**
-        `Dict[str, str]`: A dictionary containing the book's UPC, price, rating, availability, and URL.
+        Returns:
+            dict: A dictionary containing the book's UPC, price, rating, availability, and URL.
         
-        **Raises:**
-        - `TypeError`: If `book_url` is not a string.
-        - `Exception`: If there is an error fetching the page.
+        Raises:
+            TypeError: If `book_url` is not a string.
+            Exception: If there is an error fetching the page.
         
-        **Example:**
+        Example:
         ```python
         scraper = BookScraping()
         book_info = scraper.scrape_book_info("https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html")
@@ -662,15 +827,15 @@ class BookScraping(CommonMethods):
         """
         Scrapes all books from the books website.
         
-        **Returns:**
-        `Tuple[List[str], List[str]]`: A tuple containing two lists:
-        - A list of book titles.
-        - A list of corresponding book URLs.
+        Returns:
+            tuple: A tuple containing two lists:
+            - A list of book titles.
+            - A list of corresponding book URLs.
         
-        **Raises:**
-        `Exception`: If there is an error fetching the page.
+        Raises:
+            Exception: If there is an error fetching the page.
 
-        **Example:**
+        Example:
         ```python
         scraper = BookScraping()
         books, urls = scraper.scrape_all_books()
