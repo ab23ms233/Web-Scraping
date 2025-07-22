@@ -169,8 +169,29 @@ class QuoteScraping(CommonMethods):
     init(autoreset=True)
 
     def __init__(self) -> None:
+        """
+        Initializes the QuoteScraping class with a session, headers, and timeout settings.
+
+        Attributes:
+            timeout (int): Timeout for requests in seconds. Recommended to keep it low to avoid long waits.
+            session (requests.Session): A requests session for making HTTP requests. Sessions are more efficient for multiple requests.
+            header (Dict[str, str]): Headers to mimic a browser request.
+            delay (List[int]): Random delay between requests to avoid increasing traffic on the server.
+            author_urls (Dict[str, str]): A dictionary to store author names and their URLs to avoid repeated scraping of the same author.
+            similarity_ratio (float): The minimum similarity ratio for matching author names using difflib.
+        """
         super().__init__()
+
+        # Dictionary to store author names and their URLs
+        # This is used to avoid repeated scraping of the same author
+        # When scraping for the info of a particular author, the function stores the author name and url of all the authors that come before it.
+        # When scraping for a particular author, it first checks if the author is already present in the dictionary.
+        # If present, it uses the stored URL to scrape the author's information.
         self.author_urls = dict()
+
+        # In case the user make a typo in entering the author name, the program will try to find a similar author name using difflib.
+        # The similarity ratio is set to 0.85, meaning that the author name must be at least 85% similar to the entered name to be considered a match.
+        self.similarity_ratio = 0.85
 
     def author_list(self) -> List[str]:
         """
@@ -178,98 +199,75 @@ class QuoteScraping(CommonMethods):
 
         Returns:
             List[str]: A list of unique author names found on the site.
+
+        Raises:
+            Exception: If there is an error fetching the page.
         """
         author_set = set()      # To avoid duplicate entries
 
-        if len(self.author_urls) == 0:
-            url = QuoteScraping.base_url  
+        # If author_urls is empty, start scraping from the first page
+        if len(self.author_urls) == 0:      
+            url = QuoteScraping.base_url
+            next_href = ""
             page_count = 0
 
-            while url:
-                try:
-                    response = self.session.get(url, timeout=self.timeout, headers=self.header)
-                except requests.exceptions.RequestException as e:
-                    raise Exception(f"Error fetching {url}: {e}")
-
-                page_count += 1
-                print(Fore.GREEN + f"Scraping page {page_count}...")
-
-                soup = BeautifulSoup(response.text, "html.parser")
-                authors = soup.select("small.author")
-
-                # Scrape all authors in current page
-                for author in authors:
-                    name = author.get_text(strip=True)
-                    author_set.add(name)
-
-                    if name not in self.author_urls:
-                        about_href = author.find_parent("div", class_="quote").find("a", class_=None)["href"]
-                        author_url = QuoteScraping.base_url + about_href
-                        self.author_urls[name] = author_url
-
-                self.author_urls["last page"] = page_count
-                next_button = soup.find("li", class_="next")
-
-                if next_button:
-                    next_href = next_button.find("a")["href"]
-                    url = QuoteScraping.base_url + next_href
-                    time.sleep(random.uniform(self.delay[0], self.delay[1]))
-                else:
-                    self.author_urls["next href"] = None
-                    break
-            
-            return list(author_set)
-        
+        # If author_urls is not empty, use the start scraping after the last page that was fully scraped and next href from the dictionary
         else:
-            if self.author_urls["next href"]:
-                for name in self.author_urls:
-                    if name in ["last page", "next href"]:
-                        continue
-                    author_set.add(name)
 
-                url = QuoteScraping.base_url + self.author_urls["next href"]
-                page_count = self.author_urls["next page"]
+            # Store all author names currently in self.author_urls in a set to avoid duplicates
+            for name in self.author_urls:
+                if name in ["last page", "next href"]:
+                    continue
+                author_set.add(name)
 
-                while url:
-                    try:
-                        response = self.session.get(url, timeout=self.timeout, headers=self.header)
-                    except requests.exceptions.RequestException as e:
-                        raise Exception(f"Error fetching {url}: {e}")
-
-                    page_count += 1
-                    print(Fore.GREEN + f"Scraping page {page_count}...")
-
-                    soup = BeautifulSoup(response.text, "html.parser")
-                    authors = soup.select("small.author")
-
-                    # Scrape all authors in current page
-                    for author in authors:
-                        name = author.get_text(strip=True)
-                        author_set.add(name)
-
-                        if name not in self.author_urls:
-                            about_href = author.find_parent("div", class_="quote").find("a", class_=None)["href"]
-                            author_url = QuoteScraping.base_url + about_href
-                            self.author_urls[name] = author_url
-
-                    self.author_urls["last page"] = page_count
-                    next_button = soup.find("li", class_="next")
-
-                    if next_button:
-                        next_href = next_button.find("a")["href"]
-                        url = QuoteScraping.base_url + next_href
-                        time.sleep(random.uniform(self.delay[0], self.delay[1]))
-                    else:
-                        self.author_urls["next href"] = None
-                        break
-                
+            # If next href is None, it means that all authors have been scraped and we can return the list
+            if self.author_urls["next href"] is None:
                 return list(author_set)
-                    
             else:
-                names = list(self.author_urls.keys())
-                names.remove("last page")
-                names.remove("next href")
-                return names
+                next_href = self.author_urls["next href"]
+                url = QuoteScraping.base_url + next_href
+                page_count = self.author_urls["last page"]
+
+        while url:
+            try:
+                response = self.session.get(url, timeout=self.timeout, headers=self.header)
+            except requests.exceptions.RequestException as e:
+                raise Exception(f"Error fetching {url}: {e}")
+            
+            self.author_urls["last page"] = page_count      # Last page that was fully scraped
+            self.author_urls["next href"] = next_href       # href for this page (not fully scraped yet)
+
+            page_count += 1
+            print(Fore.CYAN + f"Scraping page {page_count}...")
+            soup = BeautifulSoup(response.text, "html.parser")
+            authors = soup.select("small.author")
+
+            # Scrape all authors in current page
+            for author in authors:
+                name = author.get_text(strip=True)
+                author_set.add(name)
+
+                # If author is not already in the dictionary, scrape the author URL and add it to the dictionary
+                if name not in self.author_urls:
+                    about_href = author.find_parent("div", class_="quote").find("a", class_=None)["href"]
+                    author_url = QuoteScraping.base_url + about_href
+
+                    self.author_urls[name] = author_url
+            
+            # Pagination
+            next_button = soup.find("li", class_="next")
+
+            if next_button:
+                next_href = next_button.find("a")["href"]
+                url = QuoteScraping.base_url + next_href
+                time.sleep(random.uniform(self.delay[0], self.delay[1]))
+            else:
+                self.author_urls["next href"] = None        # End of scraping
+                break
+        
+        print()
+        print(Fore.GREEN + "Successfully scraped the list of authors")
+        return list(author_set)
             
     def scrape_author_quotes(self, author: str, print_quotes: bool = True) -> Dict[str, List[str]]:
         """
@@ -299,10 +297,10 @@ class QuoteScraping(CommonMethods):
         if not isinstance(print_quotes, bool):
             raise TypeError(Fore.RED + "print_quotes must be a boolean value.")
         
-        page_count = 0
         author_quotes = dict()
         author = author.lower().strip()
         url = QuoteScraping.base_url
+        page_count = 0
 
         while url:
             try:
@@ -317,11 +315,29 @@ class QuoteScraping(CommonMethods):
             authors = soup.find_all("small", class_="author")   # All authors in current page
 
             for auth in authors:
-                name = auth.get_text(strip=True).lower()
-                similarity = difflib.SequenceMatcher(None, name, author, autojunk=True).ratio()
+                name = auth.get_text(strip=True)
 
-                # If name matches, scrape quote and tags
-                if similarity >= 0.85:
+                if name.lower() == author:
+                    match = True
+
+                else:
+                    similarity = difflib.SequenceMatcher(None, name.lower(), author, autojunk=True).ratio()
+
+                    # If name is similar, scrape quote and tags
+                    if similarity >= self.similarity_ratio:
+                        ask = input(Fore.YELLOW + f"Did you mean '{name}'? (y/n): ").strip().lower()
+                        print()
+
+                        if ask == 'y':
+                            match = True
+                        else:
+                            match = False
+                    
+                    else:
+                        continue
+                
+                if match:
+                    author = name.lower()
                     quote = auth.find_parent("div", class_="quote")
                     text = quote.select_one("span.text").get_text(strip=True)
                     tags = [tag.get_text(strip=True) for tag in quote.select("a.tag")]
@@ -373,27 +389,52 @@ class QuoteScraping(CommonMethods):
             raise TypeError(Fore.RED + "author must be a string")
         
         author = author.lower().strip()      # Normalizing author name
-        similarity_cutoff = 0.85        # Passed author name and actual author name must have this similarity to be considered
 
-        if len(self.author_urls) != 0:    # Checking if author_url is present   
-            match = difflib.get_close_matches(author, self.author_urls.keys(), n=1, cutoff=0.85)
+        if len(self.author_urls) != 0:    # Checking if author_url is present
+            names = list(self.author_urls.keys())
+            names.remove("last page")
+            names.remove("next href")
+            lower_names = list(map(lambda x: x.lower(), names))
+
+            if author in lower_names:
+                name = names[lower_names.index(author)]
+                return self.author_urls[name]
+            
+            match = difflib.get_close_matches(author, lower_names, n=1, cutoff=self.similarity_ratio)
 
             if match:       # If author_url is already present
-                name = match[0]
+                name = names[lower_names.index(match[0])]
+                ask = input(Fore.YELLOW + f"Did you mean '{name}'? (y/n): ").lower().strip()
+
+                if ask == 'y':
+                    is_match = True
+                else:
+                    is_match = False
+            
+            else:
+                is_match = False
+
+            if is_match:
                 author_url = self.author_urls[name]
                 return author_url
 
             else:       # If author_url is not present
-                page_count = self.author_urls["last page"]    # Last page that was fully scraped
-                next_href = self.author_urls["next href"]    # href for next page to be scraped
-                url = QuoteScraping.base_url + next_href    # url for current page
+                if self.author_urls["next href"] is None:
+                    raise ValueError(Fore.RED + f"Author {author} not found")
+                else:
+                    page_count = self.author_urls["last page"]    # Last page that was fully scraped
+                    next_href = self.author_urls["next href"]    # href for next page to be scraped
+                    url = QuoteScraping.base_url + next_href    # url for current page
 
         else:       # If author_url is not present
             page_count = 0
+            next_href = ""
             url = QuoteScraping.base_url
 
         if page_count == 1:
             print(f"Author not found in page 1")
+        elif page_count == 0:
+            pass
         else:
             print(f"Author not found in pages 1-{page_count}")
         
@@ -403,8 +444,11 @@ class QuoteScraping(CommonMethods):
             except requests.exceptions.RequestException as e:
                 raise Exception(Fore.RED + f"Error fetching {url}: {e}")
             
+            self.author_urls["last page"] = page_count
+            self.author_urls["next href"] = next_href
+
             page_count += 1
-            print(Fore.GREEN + f"Searching page {page_count}...")
+            print(Fore.CYAN + f"Searching page {page_count}...")
             soup = BeautifulSoup(response.text, "html.parser")          
             authors = soup.find_all("small", class_="author")       # All authors in current page
 
@@ -416,22 +460,34 @@ class QuoteScraping(CommonMethods):
                 about_href = quote.find("a", class_=None)["href"]
                 author_url = QuoteScraping.base_url + about_href    # Scraping author_url
 
-                self.author_urls[normalised_name] = author_url   # Storing author name and url, even if it does not match, for later use
+                self.author_urls[name] = author_url   # Storing author name and url, even if it does not match, for later use
+                
+
+                if author == normalised_name:
+                    return self.author_urls[name]
+                
                 similarity = difflib.SequenceMatcher(isjunk=None, a=normalised_name, b=author).ratio()
 
-                if similarity >= similarity_cutoff:      # If author name matches
-                    return author_url
+                if similarity >= self.similarity_ratio:      # If author name matches
+                    ask = input(Fore.YELLOW + f"Did you mean '{name}'? (y/n): ").lower().strip()
+
+                    if ask == 'y':
+                        is_match = True
+                    else:
+                        is_match = False
+            
+                    if is_match:
+                        return self.author_urls[name]
             
             # Pagination
             next_button = soup.find("li", class_="next")
-            self.author_urls["last page"] = page_count      # Updating last page scraped
 
             if next_button:
                 next_href = next_button.find("a")["href"]
                 url = QuoteScraping.base_url + next_href
-                self.author_urls["next href"] = next_href       # Updating next page to be scraped
                 time.sleep(random.uniform(self.delay[0], self.delay[1]))    # Reduce traffic on website
             else:
+                self.author_urls["last page"] = page_count
                 self.author_urls["next href"] = None
                 break
             
@@ -476,16 +532,20 @@ class QuoteScraping(CommonMethods):
         location = author_soup.select_one("span.author-born-location").get_text(strip=True)
         description = author_soup.select_one("div.author-description").get_text(strip=True)
         description = ".".join(description.split('.', maxsplit=6)[:5])      # Display only part of the description to keep it short
-
+        
+        print()
+        print(Fore.GREEN + f"Successfully scraped details of author {name}")
         if print_info:
             print()
             print(f"👤 Author: {name}")
             print(f"🎂 Born: {born}")
             print(f"📍 Location: {location}")
             print(f"📝 Bio: {description}")
+            print(Fore.LIGHTBLUE_EX + f"URL: {author_url}")
+
             print("-" * 60)
 
-        author_info = {"Born": born, "Location": location, "Bio": description}
+        author_info = {"Born": born, "Location": location, "Bio": description, "URL": author_url}
         return author_info
 
     def scrape_all_quotes(self) -> Dict[str, Dict[str, List[str]]]:
@@ -518,7 +578,7 @@ class QuoteScraping(CommonMethods):
             quotes = soup.find_all("div", class_="quote")       # Find all quotes in 1 page
 
             page_count += 1
-            print(Fore.GREEN + f"Scraping page {page_count}...")
+            print(Fore.CYAN + f"Scraping page {page_count}...")
 
             for quote in quotes:
                 text = quote.find("span", class_="text").get_text(strip=True)       # quote_text
@@ -537,6 +597,8 @@ class QuoteScraping(CommonMethods):
             else:
                 url = None
 
+        print()
+        print(Fore.GREEN + "Successfully scraped all quotes")
         return dict(data)
 
     def scrape_all_authors(self) -> Dict[str, str]:
@@ -559,6 +621,7 @@ class QuoteScraping(CommonMethods):
 
         if len(self.author_urls) == 0:
             page_count = 0
+            next_href = ""
             url = QuoteScraping.base_url
 
         else:
@@ -569,8 +632,11 @@ class QuoteScraping(CommonMethods):
                 author_url = self.author_urls[name]
                 author_details[name] = self.scrape_author_info(author_url, print_info=False)
             
-            if self.author_urls["next href"]:
-                url = QuoteScraping.base_url + self.author_urls["next href"]
+            if self.author_urls["next href"] is None:
+                return author_details 
+            else:
+                next_href = self.author_urls["next href"]
+                url = QuoteScraping.base_url + next_href
                 page_count = self.author_urls["last page"]
 
         while url:
@@ -579,12 +645,15 @@ class QuoteScraping(CommonMethods):
             except requests.exceptions.RequestException as e:
                 raise Exception(Fore.RED + f"Error fetching {url}: {e}")
             
+            self.author_urls["last page"] = page_count-1
+            self.author_urls["next href"] = next_href
+
+            page_count += 1
             soup = BeautifulSoup(response.text, "html.parser")
             authors = soup.select("small.author")
-            page_count += 1
-
-            print(Fore.GREEN + f"Scraping page {page_count}...")
-            print(Fore.CYAN + "Reading authors: ")
+            
+            print(Fore.CYAN + f"Scraping page {page_count}...")
+            print(Fore.LIGHTBLUE_EX + "Reading authors: ")
 
             for auth in authors:
                 name = auth.get_text(strip=True)      # author name
@@ -594,6 +663,7 @@ class QuoteScraping(CommonMethods):
                     quote = auth.find_parent("div", class_="quote") 
                     about_href = quote.find("a", class_=None)["href"]
                     author_url = QuoteScraping.base_url + about_href
+
                     self.author_urls[name] = author_url
 
                     author_response = requests.get(author_url)
@@ -602,12 +672,11 @@ class QuoteScraping(CommonMethods):
                     born = author_soup.find("span", class_="author-born-date").get_text(strip=True)
                     location = author_soup.find("span", class_="author-born-location").get_text(strip=True)[3:]
                     description = author_soup.select_one("div.author-description").get_text(strip=True)
-                    author_details[name] = {"Born": born, "Location": location, "Bio": description}
+                    author_details[name] = {"Born": born, "Location": location, "Bio": description, "URL": author_url}
 
                     time.sleep(random.uniform(self.delay[0], self.delay[1]))        # Delay requests to reduce traffic on website
             
             print()
-            self.author_urls["last page"] = page_count
             next_button = soup.find("li", class_="next")        # Next button at the end of page for author_details
             
             if next_button:     # If next_buuton is availbale
@@ -617,7 +686,9 @@ class QuoteScraping(CommonMethods):
             else:
                 url = None
                 self.author_urls["next href"] = None
-            
+        
+        print()
+        print(Fore.GREEN + "Successfully scraped all author details")
         return author_details
 
 
@@ -665,6 +736,11 @@ class BookScraping(CommonMethods):
     rating_map = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5}
     init(autoreset=True)
     
+    def __init__(self) -> None:
+       super().__init__()
+       self.book_urls = dict()
+       self.similarity_ratio = 0.8
+
     def genre_list(self) -> List[str]:
         """
         Scrapes the list of genres from the books website.
@@ -723,14 +799,26 @@ class BookScraping(CommonMethods):
             raise TypeError(Fore.RED + "genre_name must be a string")
         
         genre_name = genre_name.lower()
-        genre_list = list(map(lambda x: x.lower(), self.genre_list()))
+        genres = self.genre_list()
+        genres_lower = list(map(lambda x: x.lower(), genres))
 
-        if genre_name not in [genre for genre in genre_list]:
-            raise ValueError(Fore.RED + "genre_name not present")
+        if genre_name not in genres_lower:
+            match = difflib.get_close_matches(genre_name, genres_lower, n=1, cutoff=self.similarity_ratio)
+
+            if not match:
+                raise ValueError(Fore.RED + "genre_name not present")
+            else:
+                genre = genres[genres_lower.index(match[0])]
+                ask = input(Fore.YELLOW + f"Did you mean '{genre}? (y/n): ").lower().strip()
+
+                if ask == 'y':
+                    genre_name = match[0]
+                else:
+                    raise ValueError(Fore.RED + "genre_name not present")
         
         book_list = []
         book_url = []
-        genre_index = genre_list.index(genre_name) + 2
+        genre_index = genres.index(genre_name) + 2
 
         base_url = BookScraping.base_url + f"catalogue/category/books/{genre_name}_{genre_index}/index.html"
         url = base_url
@@ -750,7 +838,16 @@ class BookScraping(CommonMethods):
 
             # All the books in the current page of the genre
             books = soup.select("article.product_pod")
-            book_list.extend([book.h3.select_one("a")["title"] for book in books])
+
+            for book in books:
+                title = book.h3.select_one("a")["title"]
+                book_list.append(title)
+
+                if title not in self.book_urls:
+                    href = book.h3.select_one("a")["href"]
+                    url = BookScraping.base_url + "catalogue/" + href[9:]
+                    self.book_urls[title] = url
+
             hrefs = [book.h3.select_one("a")["href"] for book in books]
             book_url.extend([(BookScraping.base_url + "catalogue/" + href[9:]) for href in hrefs])
 
@@ -879,7 +976,3 @@ class BookScraping(CommonMethods):
                 break
         
         return (book_list, book_url)
-    
-    def __init__(self) -> None:
-        super().__init__()
-        self.book_url, self.book_list = self.scrape_all_books()  # Scraping all books at the start

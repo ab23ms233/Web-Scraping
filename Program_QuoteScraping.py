@@ -32,6 +32,12 @@ def main():
             if choice == 1:
                 result = quote_scraper.author_list()
                 print()
+                print(Fore.LIGHTBLUE_EX + "Authors found: ")
+
+                for name in result:
+                    print(name)
+                print()
+
             elif choice == 2:
                 author = input("Enter the name of the author: ")
                 print()
@@ -40,34 +46,34 @@ def main():
                     try:
                         result[author] = quote_scraper.scrape_author_quotes(author)
                         break
-                    except Exception:
-                        print(Fore.RED + f"No quotes found for author {author}")
+                    except Exception as e:
+                        print(Fore.RED + f"{e}")
                         author = input("Enter the name of the author: ")
                         print()
                 print()
+
             elif choice == 3:
                 author = input("Enter the name of the author: ")
                 print()
 
                 while True:
                     try:
-                        result[author] = quote_scraper.scrape_author_info(author)
+                        author_url = quote_scraper.get_author_url(author)
                         break
-                    except Exception:
+                    except Exception as e:
                         print()
-                        print(Fore.RED + f"No info found for author {author}")
+                        print(Fore.RED + f"{e}")
                         author = input("Enter the name of the author: ")
                         print()
+
+                result[author] = quote_scraper.scrape_author_info(author_url)
                 print()
+
             elif choice == 4:
                 result = quote_scraper.scrape_all_quotes()
                 print()
-                print(Fore.LIGHTGREEN_EX + "Successfully scraped all quotes")
-                print()
             elif choice == 5:
                 result = quote_scraper.scrape_all_authors()
-                print()
-                print(Fore.LIGHTGREEN_EX + "Successfully scraped all author details")
                 print()
             elif choice == 6:
 
@@ -120,9 +126,10 @@ def main():
             print("1. Continue scraping and save the data to a file")
             print("2. Continue scraping without saving the data")
             print("3. Save the data to a file and exit")
+            print("4. Exit without saving")
 
             if choice in [2, 3]:
-                print('''4. Continue scraping and add more data to the existing dataset (don't save yet)
+                print('''5. Continue scraping and add more data to the existing dataset (don't save yet)
 This means you will be performing the same operation''')
                 print()
 
@@ -134,9 +141,9 @@ This means you will be performing the same operation''')
                     same_op = False
 
                     if choice == 1:
-                        file = input("Enter the name of the file (.txt): ")
+                        file = input("Enter the name of the text file (with .txt extension): ")
                     else:
-                        file = input("Enter the name of the file (.json): ")
+                        file = input("Enter the name of the json file (with .json extension): ")
 
                     if os.path.exists(file) and os.path.getsize(file) != 0:
                         while True:
@@ -173,7 +180,11 @@ This means you will be performing the same operation''')
                     result = dict()
                     break                    
                 
-                elif next_choice == 4 and choice in [2, 3]:
+                elif next_choice == 4:
+                    print(Fore.LIGHTYELLOW_EX + "Thanks for using the Scraping Application")
+                    return
+
+                elif next_choice == 5 and choice in [2, 3]:
                     same_op = True
                     break
 
