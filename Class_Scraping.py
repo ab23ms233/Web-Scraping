@@ -757,9 +757,19 @@ class BookScraping(CommonMethods):
     init(autoreset=True)
     
     def __init__(self) -> None:
-       super().__init__()
-       self.book_urls: dict[str, dict[str, str]] = dict()
-       self.similarity_ratio = 0.8
+        """
+        Initializes the BookScraping class with a session, headers, and timeout settings.
+
+        Attributes:
+            timeout (int): Timeout for requests in seconds. Recommended to keep it low to avoid long
+            session (requests.Session): A requests session for making HTTP requests. Sessions are more efficient for multiple requests.
+            header (Dict[str, str]): Headers to mimic a browser request.
+            delay (List[int]): Random delay between requests to avoid increasing traffic on the server.
+            book_urls (Dict[str, Dict[str, Any]]): A dictionary to store genres, book titles and their URLs. It is used to avoid repeated scraping of the same book.
+        """
+        super().__init__()
+        self.book_urls: dict[str, dict[str, Any]] = dict()
+        self.similarity_ratio = 0.8
 
     def genre_list(self) -> List[str]:
         """
@@ -790,12 +800,51 @@ class BookScraping(CommonMethods):
         genre_list = [genre.find("a").get_text(strip=True) for genre in genres]
         return genre_list
     
-    def scrape_books_from_genre(self, genre_name: str, print_books: bool = True) -> List[str]:
+    def validate_name(self, name: str, options: List[str]) -> Tuple[str, bool]:
+        """
+        Validates if the given genre is present in the list of genres and corrects it if necessary.
+        
+        Parameters:
+            genre (str): The genre to validate.
+        
+        Returns:
+            tuple: A tuple containing the genre (corrected if necessary) and a boolean indicating if the genre is valid.
+        """
+        if not isinstance(name, str):
+            raise TypeError(Fore.RED + "Name to be validated must be a string")
+        
+        normal_name = name.lower().strip()     # Normalizing name
+        options_lower = list(map(lambda x: x.lower(), options))     # List for checking
+
+        # If name is an exact match, return it
+        if normal_name in options_lower:
+            name = options[options_lower.index(normal_name)]
+            return (name, True)
+
+        # If name is not an exact match, find a similar one
+        else:
+            match = difflib.get_close_matches(normal_name, options_lower, n=1, cutoff=self.similarity_ratio)
+
+            # If there is a match, ask whether the user meant this name
+            if match:
+                match_name = options[options_lower.index(normal_name)]
+                ask = input(Fore.YELLOW + f"Did you mean '{match_name}'? (y/n): ").lower().strip()
+
+                if ask == 'y':      # User confirms the match
+                    return (match_name, True)
+                else:
+                    return (name, False)
+            
+            # If there is no match, return the genre and False
+            else:
+                return (name, False)
+            
+    def scrape_books_from_genre(self, genre: str, print_books: bool = True) -> List[str]:
         """ 
         Scrapes books from a specific genre on the books website.
         
         Parameters:
-            genre_name (str): The name of the genre to scrape books from
+            genre (str): The name of the genre to scrape books from
         
         Returns:
             tuple: A tuple containing two lists:
@@ -803,8 +852,8 @@ class BookScraping(CommonMethods):
             - A list of corresponding book URLs.
         
         Raises:
-            TypeError: If `genre_name` is not a string.
-            ValueError: If `genre_name` is not present in the list of genres.
+            TypeError: If `genre` is not a string.
+            ValueError: If `genre` is not present in the list of genres.
             Exception: If there is an error fetching the page.
         
         Example:
@@ -815,33 +864,16 @@ class BookScraping(CommonMethods):
         print(urls)
         ```
         """
-        if not isinstance(genre_name, str):
-            raise TypeError(Fore.RED + "genre_name must be a string")
-        
-        genre_name = genre_name.lower().strip()     # Normalizing genre name
         genres = self.genre_list()
-        genres_lower = list(map(lambda x: x.lower(), genres))
 
-        # If genre_name is not an exact match, find a similar one
-        if genre_name not in genres_lower:
-            match = difflib.get_close_matches(genre_name, genres_lower, n=1, cutoff=self.similarity_ratio)
+        # True if genre is present in the list of genres, False otherwise
+        genre, is_present = self.validate_name(genre, genres)       
+        
+        if not is_present:
+            raise ValueError(Fore.RED + f"genre '{genre}' not present")
 
-            # If there is no match, raise error
-            if not match:
-                raise ValueError(Fore.RED + "genre_name not present")
-            
-            # If there is a match, ask whether the user meant this genre
-            else:
-                genre = genres[genres_lower.index(match[0])]
-                ask = input(Fore.YELLOW + f"Did you mean '{genre}? (y/n): ").lower().strip()
-
-                if ask == 'y':      # User confirms the match
-                    genre_name = match[0]
-                else:
-                    raise ValueError(Fore.RED + "genre_name not present")
-
-        genre_index = genres.index(genre_name) + 2
-        base_url = BookScraping.base_url + f"catalogue/category/books/{genre_name}_{genre_index}/index.html"        # URL for starting page of the genre
+        genre_index = genres.index(genre) + 2
+        base_url = BookScraping.base_url + f"catalogue/category/books/{genre}_{genre_index}/index.html"        # URL for starting page of the genre
 
         # If genre is not present in book_urls, start scraping from the first page
         if genre not in self.book_urls:
@@ -856,9 +888,19 @@ class BookScraping(CommonMethods):
             book_list = list(genre_books.keys())
             book_list.remove("next url")
             book_list.remove("last page")
-            
+
             # next href = None means that all books in the genre have been scraped
             if genre_books["next url"] is None:
+                print(Fore.GREEN + "All pages have been scraped")
+
+                # Printing books if print_book is True
+                if print_books:
+                    print(Fore.CYAN + "Books found: ")
+                    print()
+
+                    for book in book_list:
+                        print(book)
+
                 return book_list
             
             # If next href is not None, continue scraping from the next page
@@ -866,6 +908,8 @@ class BookScraping(CommonMethods):
                 next_url = genre_books["next url"]
                 url = next_url
                 page_count = genre_books["last page"]
+                print(Fore.CYAN + f"Continuing to scrape from page {page_count + 1}...")
+                print()
 
         # Scraping a Genre
         while url:
@@ -878,7 +922,7 @@ class BookScraping(CommonMethods):
             self.book_urls[genre]["next url"] = url
 
             page_count += 1
-            print(Fore.GREEN + f"Scraping page {page_count}...")
+            print(Fore.CYAN + f"Scraping page {page_count}...")
             soup = BeautifulSoup(response.text, "html.parser")
 
             # All the books in the current page of the genre
@@ -906,8 +950,68 @@ class BookScraping(CommonMethods):
                 self.book_urls[genre]["next url"] = None
                 break
         
+        print()
+        print(Fore.GREEN + "Successfully scraped all pages")
+        print()
+
+        # Printing books if print_book is True
+        if print_books:
+            print(Fore.CYAN + "Books found: ")
+
+            for book in book_list:
+                print(book)
+            print()
+
         return book_list
     
+    def get_book_url(self, book_name: str, genre: str = "") -> str:
+        if not isinstance(book_name, str):
+            raise TypeError(Fore.RED + "book_name must be a string")
+        if not isinstance(genre, str):
+            raise TypeError(Fore.RED + "genre must be a string")
+        
+        # Searching if book is present in book_urls
+        for genre in self.book_urls:
+            genre_books = list(self.book_urls[genre].keys())
+            genre_books.remove("last page")
+            genre_books.remove("next url")
+
+            # Finding exact/similar match for book_name in genre_books and correcting book_name if necessary
+            book, is_present = self.validate_name(book_name, genre_books)
+
+            if is_present:      # Return book URL if it is present
+                return self.book_urls[genre][book]
+
+        # If no genre is specified, search in all genres
+        if genre == "":
+            genres = self.genre_list()
+
+            for genre_name in genres:
+                genre_books = self.scrape_books_from_genre(genre_name, print_books=False)
+                book, is_present = self.validate_name(book_name, genre_books)
+
+                if is_present:
+                    return self.book_urls[genre_name][book]
+
+        # If genre is specified, search in that genre 
+        else:
+            genres = self.genre_list()
+            genre, is_present = self.validate_name(genre, genres)
+
+            # Checking if genre_name is valid
+            if not is_present:
+                raise ValueError(Fore.RED + f"genre '{genre}' not present")
+
+            genre_books = self.scrape_books_from_genre(genre)
+            book, is_present = self.validate_name(book, genre_books)
+
+            # Checking if book is present in the specified genre
+            if is_present:
+                return self.book_urls[genre][book]
+            
+        # If book is not found in any genre, raise error
+        raise ValueError(Fore.RED + f"Book '{book_name}' not found in any genre.")
+
     def scrape_book_info(self, book_url: str, print_info: bool = True) -> Dict[str, str]:
         """
         Scrapes information about a specific book from its URL.
@@ -945,7 +1049,13 @@ class BookScraping(CommonMethods):
         availability = soup.select_one("p", class_="instock availability").get_text(strip=True)      # availability
         price = soup.select_one("p.price_color").get_text(strip=True)       # price
         rating_text = soup.select_one("p.star-rating")["class"][-1].lower()
-        rating = BookScraping.rating_map[rating_text]
+        rating = BookScraping.rating_map[rating_text]       # rating
+        breadcrumbs = soup.select("ul.breadcrum li a")
+
+        if len(breadcrumbs) >= 3:
+            genre = breadcrumbs[2].get_text(strip=True)     # genre
+        else:
+            genre = "Unknown"
 
         table = soup.find("table", class_="table table-striped")
         rows = table.select("tr")
@@ -955,17 +1065,17 @@ class BookScraping(CommonMethods):
                 upc = row.select_one("td").get_text(strip=True)     # UPC
         
         if print_info:
+            print(Fore.MAGENTA + f"Genre: {genre}")
             print(Fore.YELLOW + f"📦 UPC: {upc}")
             print(Fore.GREEN + f"💰 Price: {price}")
             print(Fore.BLUE + f"⭐ Rating: {rating} out of 5")
             print(Fore.LIGHTYELLOW_EX + f"📍 Availability: {availability}")
             print(Fore.CYAN + f"🔗 URL: {book_url}")
-            print("-" * 60)
 
-        book_info = {"UPC": upc, "Price": price, "Rating": rating, "Availability": availability, "URL": book_url}     # Recording data
+        book_info = {"Genre": {genre}, "UPC": upc, "Price": price, "Rating": rating, "Availability": availability, "URL": book_url}     # Recording data
         return book_info
         
-    def scrape_all_books(self) -> Tuple[List[str], List[str]]:
+    def scrape_all_books(self) -> Dict[str, str]:
         """
         Scrapes all books from the books website.
         
@@ -985,10 +1095,10 @@ class BookScraping(CommonMethods):
         print(urls)
         """
         url = BookScraping.base_url
-        book_list = []
-        book_url = []
+        book_list: dict[str, str] = dict()
         page_count = 0
 
+        # Scraping a page
         while url:
             page_count += 1
 
@@ -997,15 +1107,20 @@ class BookScraping(CommonMethods):
             except requests.exceptions.RequestException as e:
                 raise Exception(Fore.RED + f"Error fetching {url}: {e}")
             
-            print(Fore.GREEN + f"Scraping page {page_count}...")
+            print(Fore.CYAN + f"Scraping page {page_count}...")
             soup = BeautifulSoup(response.text, "html.parser")
 
             books = soup.select("article.product_pod")
-            book_list.extend([book.h3.select_one("a")["title"] for book in books])
-            hrefs = [book.h3.select_one("a")["href"] for book in books]
-            book_url.extend([(BookScraping.base_url + "catalogue/" + href[9:]) for href in hrefs])
 
-            # Looking for next button in the same genre
+            # Scraping book title and URL
+            for book in books:
+                title = book.h3.select_one("a")["title"]
+                href = book.h3.select_one("a")["href"]
+                url = (BookScraping.base_url + "catalogue/" + href[9:])
+
+                book_list[title] = url
+
+            # Looking for next button in the same genre (Pagination)
             next_button = soup.find("li", class_="next")
 
             if next_button:
@@ -1020,4 +1135,4 @@ class BookScraping(CommonMethods):
             else:
                 break
         
-        return (book_list, book_url)
+        return book_list
